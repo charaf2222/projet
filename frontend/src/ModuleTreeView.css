@@ -1,0 +1,46 @@
+.moduleTreeView {
+    font-family: 'Arial', sans-serif;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .content {
+    display: flex;
+    gap: 20px;
+  }
+  
+  .moduleList, .formSection {
+    flex: 1;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #2b2828;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .moduleList h3, .formSection h3 {
+    margin-top: 0;
+  }
+  
+  .moduleList ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .moduleList li {
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #322b2b;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s ease-in-out;
+  }
+  
+  .moduleList li:hover, .moduleList li.selected {
+    background-color: #233241;
+  }
+  
+  .formSection {
+    background-color: #c23e3e;
+  }
+  
