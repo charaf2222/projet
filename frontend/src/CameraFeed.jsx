@@ -1,21 +1,44 @@
+
 // CameraFeed.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import Camera from './Camera';
+import OpenCvComponent from './OpenCvComponent';
 
+const CameraFeed = () => {
+    const [isCvReady, setCvReady] = useState(false);
+    const [canvas, setCanvas] = useState(null);
 
-function CameraFeed() {
-  return (
-    <div>
-      <h1>Welcome to My App</h1>
-      {/* Embed the CameraFeed.html page using an iframe */}
-      <iframe
-        src="C:\\Users\\user\\Desktop\\Projet\\frontend\\src\\CameraFeed.html"
-        title="Camera Feed"
-        width="100%"
-        height="600px" // Adjust the height as needed
-        frameBorder="0"
-      />
-    </div>
-  );
-}
+    useEffect(() => {
+        const checkOpenCv = () => {
+            if (window.cv && window.cv.imread) {
+                setCvReady(true);
+            } else {
+                document.addEventListener('opencvloaded', () => {
+                    console.log('OpenCV loaded');
+                    setCvReady(true);
+                });
+            }
+        };
+
+        checkOpenCv();
+
+        return () => {
+            document.removeEventListener('opencvloaded', () => {
+                console.log('OpenCV unloaded');
+            });
+        };
+    }, []);
+
+    const handleCanvasReady = (canvasElement) => {
+        setCanvas(canvasElement);
+    };
+
+    return (
+        <div>
+            <Camera onCanvasReady={handleCanvasReady} />
+            {isCvReady && canvas && <OpenCvComponent canvas={canvas} />}
+        </div>
+    );
+};
 
 export default CameraFeed;
