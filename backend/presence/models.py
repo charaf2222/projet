@@ -2,7 +2,12 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
-
+import cv2
+import face_recognition
+import dlib
+import numpy as np
+import json
+from PIL import Image
 
 class Modules(models.Model):
     CHOIX_STATUT = [
@@ -40,7 +45,46 @@ class Etudient(models.Model):
     Incoding_Face = models.TextField(blank = True, null = True)
     Is_Incoded = models.BooleanField(default = False)
     
+@receiver(post_save, sender=Etudient)
+def extract_face_encoding(sender, instance, created, **kwargs):
+    if created and instance.Is_Incoded==False:  # Check if it's a new instance and an image exists
+        image = cv2.imread(instance.Image.path)
 
+        # Convertir l'image en niveaux de gris
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Charger le classificateur Haar pour la détection de visages
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+        # Détection des visages dans l'image
+        faces = face_cascade.detectMultiScale(gray_image, scaleFactor=1.3, minNeighbors=5)
+
+        # Dessiner des rectangles autour des visages détectés
+        for (x, y, w, h) in faces:
+            cv2.rectangle(image, (x, y), (x+w, y+h), (255, 0, 0), 2)
+
+
+        face = image[y:y + h, x:x + w]
+        print("c'est le face extract :__________________________")
+        print("\n")
+        face = Image.fromarray(face)
+        face = np.asarray(face)
+        print("the lenght is : ", len(face))
+        print(face)
+        encodages_visages = []
+        visage_encoding = face_recognition.face_encodings(face)[0]
+        # Ajouter les encodages à la liste
+        encodages_visages.extend(visage_encoding)
+
+        # visage_encoding = face_recognition.face_encodings (face) [0]
+        # Convertir le tableau NumPy en chaîne JSON
+        # Convertir la liste d'encodages en chaîne JSON
+        embedding_json = json.dumps([enc.tolist() for enc in encodages_visages])
+        print(embedding_json)
+        # Use the first face found in the image (if multiple faces are present)
+        instance.Incoding_Face = embedding_json
+        instance.Is_Incoded = True
+        instance.save()
 
 class Seances(models.Model):
     choice = [

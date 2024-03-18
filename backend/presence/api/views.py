@@ -8,8 +8,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login
 from rest_framework import status
+import json
 import cv2
 import face_recognition
+import time
+import os
+import numpy as np
+from PIL import Image
 
 class ModulesViewSet(ModelViewSet):
     queryset = Modules.objects.all()
@@ -127,6 +132,47 @@ class GroupeViewSet(ModelViewSet):
 class EtudientViewSet(ModelViewSet):
     queryset = Etudient.objects.all()
     serializer_class = EtudientSerializer
+    
+    @api_view(['POST'])
+    @permission_classes([AllowAny])
+    def compare_faces(self, request):
+        # Assuming the POST request contains an array of face encodings
+        received_encodings = request.data.get('encodings')
+        if not received_encodings:
+            return Response({'error': 'Encodings not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Convert received encodings from JSON to a NumPy array
+        received_encodings = np.array(received_encodings)
+
+        # Placeholder for the closest match
+        closest_match = None
+        min_distance = float('inf')  # Initialize with infinity
+
+        # Iterate over each Etudient in the database
+        for etudient in Etudient.objects.all():
+            # Skip if the etudient has no encoding
+            if not etudient.encoding_face:
+                continue
+
+            # Load and deserialize the stored encoding
+            stored_encodings = json.loads(etudient.encoding_face)
+            stored_encodings = np.array(stored_encodings)
+
+            # Compute the distance between received and stored encodings
+            # Here, we use Euclidean distance as an example
+            distance = np.linalg.norm(received_encodings - stored_encodings)
+
+            # Update the closest match if this distance is smaller
+            if distance < min_distance:
+                min_distance = distance
+                closest_match = etudient
+
+        # If a match is found, return the corresponding Etudient data
+        if closest_match:
+            serializer = self.get_serializer(closest_match)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'No matching face found'}, status=status.HTTP_404_NOT_FOUND)
  
 class AbsenceViewSet(ModelViewSet):
     queryset = Absence.objects.all()

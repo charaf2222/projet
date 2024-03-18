@@ -10,7 +10,8 @@ import ModifierEnseignant from './ModifierEnseignant';
 import CreateModule from './CreateModule';
 import UpdateModule from './UpdateModule';
 import ModuelsTreeview from './ModuelsTreeview';
-import CameraFeed from './CameraFeed';
+import MyComponent from './MyComponent';
+import WebcamFaceDetectionComponent from './components/WebcamFaceDetectionComponent';
 import { createBrowserRouter } from 'react-router-dom';
 
 const router = createBrowserRouter([
@@ -22,13 +23,18 @@ const router = createBrowserRouter([
   {path:"/CreateModule", element: <CreateModule/>},
   {path:"/UpdateModule", element: <UpdateModule/>},
   {path:"/ModuelsTreeview", element: <ModuelsTreeview/>},
-  {path:"/CameraFeed", element: <CameraFeed/>},
 
 ]);
 
 function App() {
   return (
-    <RouterProvider router = {router}/>
+    <div className="App">
+          <h1>Webcam Face Detection App</h1>
+          <MyComponent />
+      
+    </div>
+    // <RouterProvider router = {router}/>
+
   );
 }
 

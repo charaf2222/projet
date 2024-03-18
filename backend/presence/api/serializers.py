@@ -26,7 +26,7 @@ class GroupeSerializer(ModelSerializer):
 class EtudientSerializer(ModelSerializer):
     class Meta:
         model = Etudient
-        fields = ('id', 'Id_Groupe', 'Nom', 'Prenom', 'Email')    
+        fields = ('id', 'Id_Groupe', 'Nom', 'Prenom', 'Email', 'Image', 'Incoding_Face', 'Is_Incoded')    
         
         
         

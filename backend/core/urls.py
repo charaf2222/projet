@@ -16,11 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from presence.views import webcam_view as webcam_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('core.api.urls')),
-    path('webcam/', webcam_view, name='webcam-view'),
-    
+   
  ]
