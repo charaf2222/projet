@@ -13,20 +13,19 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #020202; /* Optional: Background color for the page */
+            background-color: #020202; 
         }
         #videoWrapper {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh; /* Adjusted to 100% of the viewport height */
+            height: 100vh; 
         }
         #cam_input {
-            display: none; /* Hide the video element */
+            display: none; 
         }
         #canvas_output {
-            /* Additional styling to ensure canvas is centered if needed */
-            /* You can specify width and height here if you want to fix the size of the canvas */
+            background-color: aqua;
         }
     </style>
 </head>
@@ -54,7 +53,7 @@ function openCvReady() {
         let faces = new cv.RectVector();
         let classifier = new cv.CascadeClassifier();
         let utils = new Utils('errorMessage');
-        let faceCascadeFile = 'haarcascade_frontalface_default.xml'; // path to xml
+        let faceCascadeFile = 'haarcascade_frontalface_default.xml'; 
         utils.createFileFromUrl(faceCascadeFile, faceCascadeFile, () => {
             classifier.load(faceCascadeFile); // in the callback, load the cascade from file 
         });
@@ -80,9 +79,7 @@ function openCvReady() {
                 cv.rectangle(dst, point1, point2, [0, 0, 255, 255]);
                 // Extraction du visage
                 let faceROI = src.roi(face); // Région d'intérêt (ROI) correspondant au visage
-                // Assuming `faceROI` is your extracted face region as a cv.Mat object
-                // Assuming `faceROI` is your extracted face region as a cv.Mat object from OpenCV.js
-                // Assuming `faceROI` is your extracted face region as a cv.Mat object from OpenCV.js
+
                 let rows = faceROI.rows;
                 let cols = faceROI.cols;
                 let structuredArray = [];
@@ -90,7 +87,7 @@ function openCvReady() {
                 for (let i = 0; i < rows; i++) {
                     let rowArray = [];
                     for (let j = 0; j < cols; j++) {
-                        // Extracting only the RGB values, ignoring the Alpha channel
+                        
                         let pixel = [faceROI.ucharPtr(i, j)[0], // R
                                     faceROI.ucharPtr(i, j)[1], // G
                                     faceROI.ucharPtr(i, j)[2]]; // B
@@ -99,22 +96,34 @@ function openCvReady() {
                     structuredArray.push(rowArray);
                 }
 
-                // Now `structuredArray` mimics the Python-like array without the Alpha channel.
 
 
-                // To simulate the example output you provided (the length and a glimpse of the array structure)
                 console.log("The length is:", structuredArray.length);
                 console.log(JSON.stringify(structuredArray.slice(0, 3)) + "\n...\n"); // Show the beginning of the array for brevity
 
-                // This console output is just to give you an idea. It won't exactly replicate Python's print output but gives a structured view of the data.
 
-                fetch('http://127.0.0.1:8000/api/Etudient/', { // Assuming 'compare_faces' is your custom action
+                
+                console.log("", JSON.stringify({encodings: JSON.stringify(structuredArray.slice(1, 20))}))
+
+                let structuredArraySlice = structuredArray.slice(1, 20); 
+
+                let formData = new FormData();
+                
+
+
+
+                formData.append("encodings", JSON.stringify(structuredArraySlice));
+                
+                // const data = Object.fromEntries(formData)
+
+                // console.log("data : ", data.encodings.length)
+
+                // console.log("data : ", data)
+
+                fetch('http://127.0.0.1:8000/api/Etudient/', { 
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // Include any other headers your Django backend requires, like CSRF tokens for example
-                    },
-                    body: JSON.stringify({encodings: structuredArray}), // Make sure to stringify your payload
+                    body: formData, 
+                    redirect: 'follow'
                 })
                 .then(response => {
                     if (!response.ok) {
@@ -124,8 +133,6 @@ function openCvReady() {
                 })
                 .then(data => console.log('Success:', data))
                 .catch((error) => console.error('Error:', error));
-                
-
 
             
             }

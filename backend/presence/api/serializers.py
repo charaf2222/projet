@@ -1,6 +1,13 @@
 from rest_framework.serializers import ModelSerializer
-from ..models import Etudient, Enseignant, Modules, Groupe, Seances, Absence, Assister, Etat_Etudient_Module, Reconnaissance_Faciale
+from ..models import Etudient, Enseignant, Modules, Groupe, Seances, Absence, Assister, Etat_Etudient_Module, Reconnaissance_Faciale, CapturedImage
 from django.contrib.auth import get_user_model
+
+
+class CapturedImageSerializer(ModelSerializer):
+    class Meta:
+        model = CapturedImage
+        fields = '__all__'
+
 
 class ModulesSerializer(ModelSerializer):
     class Meta:

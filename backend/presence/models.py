@@ -138,3 +138,12 @@ class Etat_Etudient_Module(models.Model):
 class Reconnaissance_Faciale(models.Model):
     ID_Etudient = models.ForeignKey(Etudient, on_delete=models.SET_NULL, null=True)
     Encoding_visage = models.TextField()
+    
+    
+
+class CapturedImage(models.Model):
+    image = models.ImageField(upload_to='captured_images/')
+    capture_time = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image captured on {self.capture_time}"

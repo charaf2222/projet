@@ -1,6 +1,8 @@
 from rest_framework.viewsets import ModelViewSet
-from ..models import Etudient, Enseignant, Modules, Groupe, Seances, Absence, Assister, Etat_Etudient_Module, Reconnaissance_Faciale
-from .serializers import ModulesSerializer, SeancesSerializer, EnseignantSerializer, GroupeSerializer, EtudientSerializer, AbsenceSerializer, AssisterSerializer, Etat_Etudient_ModuleSerializer, Reconnaissance_FacialeSerializer
+from rest_framework import viewsets
+from rest_framework.views import APIView
+from ..models import Etudient, Enseignant, Modules, Groupe, Seances, Absence, Assister, Etat_Etudient_Module, Reconnaissance_Faciale, CapturedImage
+from .serializers import ModulesSerializer, SeancesSerializer, EnseignantSerializer, GroupeSerializer, EtudientSerializer, AbsenceSerializer, AssisterSerializer, Etat_Etudient_ModuleSerializer, Reconnaissance_FacialeSerializer, CapturedImageSerializer
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
@@ -8,6 +10,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login
 from rest_framework import status
+from rest_framework.decorators import action
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+import base64
+from io import BytesIO
 import json
 import cv2
 import face_recognition
@@ -15,7 +22,33 @@ import time
 import os
 import numpy as np
 from PIL import Image
+import logging
 
+logger = logging.getLogger(__name__)
+
+class CaptureImageViewSet(viewsets.ModelViewSet):
+    queryset = CapturedImage.objects.all()
+    serializer_class = CapturedImageSerializer
+
+    @action(detail=False, methods=['get'])
+    def capture(self, request):
+        cap = cv2.VideoCapture(0)  # Utilisez le numéro de périphérique correct de votre caméra
+        ret, frame = cap.read()
+        cap.release()
+
+        if not ret:
+            return Response({'error': 'Impossible de capturer la frame'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        _, buffer = cv2.imencode('.jpg', frame)
+        image_base64 = base64.b64encode(buffer).decode('utf-8')
+        print('Image Base64:', image_base64)  # Ajoutez ceci pour déboguer
+        return Response({'image': image_base64})
+
+        # Optionnel: Sauvegarder l'image capturée dans votre base de données
+        # Vous aurez besoin de modifier votre modèle ou d'ajuster la logique ici pour gérer le stockage de base64 ou sous forme de fichier.
+        # captured_image = CapturedImage(...)
+        # captured_image.save()
+    
 class ModulesViewSet(ModelViewSet):
     queryset = Modules.objects.all()
     serializer_class = ModulesSerializer
@@ -134,46 +167,81 @@ class EtudientViewSet(ModelViewSet):
     serializer_class = EtudientSerializer
     
     @api_view(['POST'])
-    @permission_classes([AllowAny])
-    def compare_faces(self, request):
+    def compare_faces(self, request):  # Removed 'self', add if within a class
+        data = json.loads(request.body)
+        encodings = data.get('encodings')
+        print("array :::: ", encodings)
+                
+        serializer = EtudientSerializer(data=request.data)
+        print(serializer)
+
         # Assuming the POST request contains an array of face encodings
         received_encodings = request.data.get('encodings')
         if not received_encodings:
             return Response({'error': 'Encodings not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Convert received encodings from JSON to a NumPy array
-        received_encodings = np.array(received_encodings)
+        try:
+            # Convert received encodings from JSON to a NumPy array
+            received_encodings = np.array(received_encodings)
+            
+        except Exception as e:
+            return Response({'error': 'Invalid encodings format', 'details': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Placeholder for the closest match
         closest_match = None
-        min_distance = float('inf')  # Initialize with infinity
+        min_distance = float('inf')
 
-        # Iterate over each Etudient in the database
         for etudient in Etudient.objects.all():
-            # Skip if the etudient has no encoding
             if not etudient.encoding_face:
                 continue
 
-            # Load and deserialize the stored encoding
             stored_encodings = json.loads(etudient.encoding_face)
             stored_encodings = np.array(stored_encodings)
-
-            # Compute the distance between received and stored encodings
-            # Here, we use Euclidean distance as an example
             distance = np.linalg.norm(received_encodings - stored_encodings)
 
-            # Update the closest match if this distance is smaller
             if distance < min_distance:
                 min_distance = distance
                 closest_match = etudient
-
-        # If a match is found, return the corresponding Etudient data
+                
+                
         if closest_match:
-            serializer = self.get_serializer(closest_match)
+            serializer = self.get_serializer(closest_match)  # Adjust based on your class setup
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response({'message': 'No matching face found'}, status=status.HTTP_404_NOT_FOUND)
  
+
+class CompareFacesView(APIView):
+    permission_classes = []  # Adjust as needed
+
+    def post(self, request, *args, **kwargs):
+        print(request.data)
+        received_encodings = request.data.get('encodings')
+        if not received_encodings:
+            return Response({'error': 'Encodings not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        received_encodings = np.array(received_encodings)
+        closest_match = None
+        min_distance = float('inf')
+
+        for etudient in Etudient.objects.all():
+            if not etudient.encoding_face:
+                continue
+
+            stored_encodings = json.loads(etudient.encoding_face)
+            stored_encodings = np.array(stored_encodings)
+            distance = np.linalg.norm(received_encodings - stored_encodings)
+
+            if distance < min_distance:
+                min_distance = distance
+                closest_match = etudient
+
+        if closest_match:
+            serializer = EtudientSerializer(closest_match)
+            print("serialiser : ", serializer)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'No matching face found'}, status=status.HTTP_404_NOT_FOUND)
+
 class AbsenceViewSet(ModelViewSet):
     queryset = Absence.objects.all()
     serializer_class = AbsenceSerializer 

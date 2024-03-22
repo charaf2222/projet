@@ -11,6 +11,7 @@ import CreateModule from './CreateModule';
 import UpdateModule from './UpdateModule';
 import ModuelsTreeview from './ModuelsTreeview';
 import MyComponent from './MyComponent';
+import CameraView from './CameraView';
 import WebcamFaceDetectionComponent from './components/WebcamFaceDetectionComponent';
 import { createBrowserRouter } from 'react-router-dom';
 
@@ -31,7 +32,6 @@ function App() {
     <div className="App">
           <h1>Webcam Face Detection App</h1>
           <MyComponent />
-      
     </div>
     // <RouterProvider router = {router}/>
 
