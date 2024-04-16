@@ -16,9 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from presence.api.urls import CompareFacesView
+from presence.api.views import EnseignantOperations, AssisterBySeanceAPIView, SeancesByEnseignantAPIView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/reconize/', CompareFacesView.as_view()),
+    path('api/login/', EnseignantOperations.as_view()),
+    path('api/assister_by_seance/<int:seance_id>/', AssisterBySeanceAPIView.as_view()),
+    path('api/seance_by_enseignant/<int:enseignant_id>/', SeancesByEnseignantAPIView.as_view()),
     path('api/', include('core.api.urls')),
    
  ]

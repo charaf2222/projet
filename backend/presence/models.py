@@ -117,14 +117,7 @@ class Absence(models.Model):
     # post save
 
 
-@receiver(post_save, sender=Absence)
-def incrimentAbsenceNumber(sender, instence, created, **kwargs):
-    if created:
-        etat = Etat_Etudient_Module.objects.get_or_create(ID_Etudiant=instence.ID_Etudiant, ID_Module=instence.ID_Seances.ID_Module)
-        etat.Nbr_Absence += 1
-        etat.save()    
-
-    
+# id seances 36     id etat 6 
     
 class Etat_Etudient_Module(models.Model):
     ID_Etudient = models.ForeignKey(Etudient, on_delete=models.SET_NULL, null=True)
@@ -133,8 +126,31 @@ class Etat_Etudient_Module(models.Model):
     Nbr_Absence = models.IntegerField(default=0)
     Nbr_Absence_Justifier = models.IntegerField(default=0)
     
-    
+    class Meta:
+        unique_together = ('ID_Etudient', 'ID_Module')  # Cela garantit l'unicité de la paire ID_Etudient et ID_Module
 
+    
+@receiver(post_save, sender=Absence)
+def increment_absence_number(sender, instance, created, **kwargs):
+    if created:
+        # Trouver ou créer l'objet Etat_Etudient_Module pour l'étudiant et le module concernés
+        etat, created = Etat_Etudient_Module.objects.get_or_create(
+            ID_Etudient=instance.ID_Etudient,
+            ID_Module=instance.ID_Seances.ID_Module,
+            defaults={'Nbr_Absence': 0, 'Nbr_Absence_Justifier': 0}
+        )
+        
+        # Incrémenter le nombre d'absences
+        etat.Nbr_Absence += 1
+        
+        # Si l'absence est justifiée, incrémenter aussi le nombre d'absences justifiées
+        if instance.Justifier:
+            etat.Nbr_Absence_Justifier += 1
+        
+        # Sauvegarder les modifications
+        etat.save()
+
+        
 class Reconnaissance_Faciale(models.Model):
     ID_Etudient = models.ForeignKey(Etudient, on_delete=models.SET_NULL, null=True)
     Encoding_visage = models.TextField()

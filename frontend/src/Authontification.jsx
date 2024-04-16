@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const Authontification = () => {
+const Authentication = () => {
   const [formData, setFormData] = useState({
     username: '',
     password: '',
   });
+
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -16,24 +19,26 @@ const Authontification = () => {
     e.preventDefault();
 
     try {
-      console.log('Request Data:', formData);
-      const response = await axios.get('http://127.0.0.1:8000/api/Enseignant/', formData, {
-        params: { action: 'login' },  // Add a parameter to specify the login action
+      console.log("Form data:", formData);
+      const response = await axios.post('http://127.0.0.1:8000/api/login/', formData, {
+        headers: {
+          'Content-Type': 'application/json', // Ensure JSON content type
+        },
       });
 
-      
-      console.log('Response Data:', response.data);
-
-      // Save the token in localStorage
-      localStorage.setItem('token', response.data.token);
-
-      console.log('Login successful');
-
-      // Redirect to another page using window.location
-      window.location.href = '/Welcome';
+      if (response.data.token && response.data.enseignantId) {
+        console.log('Login successful:', response.data);
+        // Store token in localStorage or another secure place
+        localStorage.setItem('authToken', response.data.token);
+        navigate(`/HomeEnseignant/${response.data.enseignantId}`);
+      } else {
+        console.log('Authentication failed');
+        alert('Authentication failed');
+      }
     } catch (error) {
-      console.error('Error logging in:', error);
-      alert('Error logging in. Please check the console for details.');
+      console.error('Error during authentication:', error);
+      // Display a more user-friendly message depending on the error response
+      alert('Authentication error. Please try again.');
     }
   };
 
@@ -41,19 +46,29 @@ const Authontification = () => {
     <form onSubmit={handleSubmit}>
       <label>
         Username:
-        <input type="text" name="username" value={formData.username} onChange={handleChange} required />
+        <input
+          type="text"
+          name="username"
+          value={formData.username}
+          onChange={handleChange}
+          required
+        />
       </label>
       <br />
-
       <label>
         Password:
-        <input type="password" name="password" value={formData.password} onChange={handleChange} required />
+        <input
+          type="password"
+          name="password"
+          value={formData.password}
+          onChange={handleChange}
+          required
+        />
       </label>
       <br />
-
       <button type="submit">Login</button>
     </form>
   );
 };
 
-export default Authontification;
+export default Authentication;

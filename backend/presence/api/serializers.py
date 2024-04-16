@@ -52,7 +52,7 @@ class AssisterSerializer(ModelSerializer):
 class Etat_Etudient_ModuleSerializer(ModelSerializer):
     class Meta:
         model = Etat_Etudient_Module
-        fields = ('id', 'ID_Etudient', 'ID_Seances', 'ID_Module', 'Nbr_Absence', 'Nbr_Absence_Justifier')          
+        fields = ('id', 'ID_Etudient', 'ID_Module', 'Nbr_Absence', 'Nbr_Absence_Justifier')          
         
 class Reconnaissance_FacialeSerializer(ModelSerializer):
     class Meta:

@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from ..models import Etudient, Enseignant, Modules, Groupe, Seances, Absence, Assister, Etat_Etudient_Module, Reconnaissance_Faciale, CapturedImage
 from .serializers import ModulesSerializer, SeancesSerializer, EnseignantSerializer, GroupeSerializer, EtudientSerializer, AbsenceSerializer, AssisterSerializer, Etat_Etudient_ModuleSerializer, Reconnaissance_FacialeSerializer, CapturedImageSerializer
 from django.contrib.auth import get_user_model
+from PIL import Image
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -23,6 +24,9 @@ import os
 import numpy as np
 from PIL import Image
 import logging
+from django.http import JsonResponse
+import datetime
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +92,30 @@ class ModulesViewSet(ModelViewSet):
 class SeancesViewSet(ModelViewSet):
     queryset = Seances.objects.all()
     serializer_class = SeancesSerializer
+    
  
+class EnseignantOperations(APIView):
+    permission_classes = [AllowAny]
+    
+    @csrf_exempt  # Consider CSRF protection based on your application's needs
+    def post(self, request, *args, **kwargs):
+        print(request.data)
+        # Assuming the request's body is JSON, parse it
+
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        if not username or not password:
+            return JsonResponse({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            enseignant = Enseignant.objects.get(username=username, password=password)  # Hypothétique; utilisez le hachage de mot de passe dans la pratique
+            # Si trouvé, retourne le token (exemple simplifié) et l'ID de l'enseignant
+            return Response({'token': 'token_fictif_pour_exemple', 'enseignantId': enseignant.id})
+        except Enseignant.DoesNotExist:
+            # Aucun utilisateur trouvé avec les identifiants fournis
+            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+        
 class EnseignantViewSet(ModelViewSet):
     queryset = get_user_model().objects.all()
     serializer_class = EnseignantSerializer
@@ -113,29 +140,7 @@ class EnseignantViewSet(ModelViewSet):
                 return Response({"erreur": serializer.errors}, status=400)
         else:
             return Response({"erreur": "Method not allowed"}, status=405) 
-    
 
-    @api_view(['GET'])
-    @permission_classes([AllowAny])
-    def enseignant_operations(request):
-        action = request.query_params.get('action', '').lower()
-
-        if action == 'login' and request.method == 'GET':
-            username = request.data.get('username')
-            password = request.data.get('password')
-
-            user = authenticate(request, username=username, password=password)
-            if user:
-                token, _ = Token.objects.get_or_create(user=user)
-                return Response({'token': token.key})
-            else:
-                return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        # Other operations...
-
-        else:
-            return Response({'error': 'Invalid action or method'}, status=status.HTTP_400_BAD_REQUEST)
-    
     @api_view(['PUT', 'DELETE'])
     @permission_classes([IsAuthenticated])
     def update_or_delete(request, user_id):
@@ -191,10 +196,10 @@ class EtudientViewSet(ModelViewSet):
         min_distance = float('inf')
 
         for etudient in Etudient.objects.all():
-            if not etudient.encoding_face:
+            if not etudient.Incoding_Face:
                 continue
 
-            stored_encodings = json.loads(etudient.encoding_face)
+            stored_encodings = json.loads(etudient.Incoding_Face)
             stored_encodings = np.array(stored_encodings)
             distance = np.linalg.norm(received_encodings - stored_encodings)
 
@@ -214,20 +219,32 @@ class CompareFacesView(APIView):
     permission_classes = []  # Adjust as needed
 
     def post(self, request, *args, **kwargs):
-        print(request.data)
-        received_encodings = request.data.get('encodings')
+        received_encodings = json.loads(request.data.get('encodings'))
+        print("TYPE :: ", type(received_encodings))
+        print(received_encodings)
+        len1= len(received_encodings)
+        len2 = [len(val) for val in received_encodings]
+        print("len1 : ", len1)
+        print("\n len2 : ", len2)
         if not received_encodings:
             return Response({'error': 'Encodings not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-        received_encodings = np.array(received_encodings)
+        
+        received_encodings = np.asarray(received_encodings)
+        received_encodings = Image.fromarray(received_encodings)
+        # received_encodings = np.array(received_encodings)
+        print("recived aprés PIL : ", received_encodings)
+        
         closest_match = None
         min_distance = float('inf')
 
         for etudient in Etudient.objects.all():
-            if not etudient.encoding_face:
+            if not etudient.Incoding_Face:
                 continue
 
-            stored_encodings = json.loads(etudient.encoding_face)
+            stored_encodings = json.loads(etudient.Incoding_Face)
+            face_encodings = face_recognition.face_encodings(received_encodings)
+            print("encoding visage : : : ", face_encodings)
             stored_encodings = np.array(stored_encodings)
             distance = np.linalg.norm(received_encodings - stored_encodings)
 
@@ -242,6 +259,103 @@ class CompareFacesView(APIView):
         else:
             return Response({'message': 'No matching face found'}, status=status.HTTP_404_NOT_FOUND)
 
+'''
+
+// c'est le code que j'ai fait la dernier fois et il marche bien
+
+
+class CompareFacesView(APIView):
+    permission_classes = []  # Adjust as needed
+
+    def post(self, request, *args, **kwargs):
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+        recognized_student_ids = set()
+
+        # Fetch the most recent Seance based on the last ID
+        last_seance = Seances.objects.all().order_by('-id').first()
+        if not last_seance:
+            return JsonResponse({'error': 'No seances found'}, status=400)
+
+        # Assuming you're able to identify the group of the last_seance
+        if last_seance.ID_Groupe:
+            # Filter students who belong to this group
+            students_of_group = Etudient.objects.filter(Id_Groupe=last_seance.ID_Groupe)
+        else:
+            return JsonResponse({'error': 'Last seance has no group associated'}, status=400)
+
+        def extract_face(image_path):
+            image = cv2.imread(image_path)
+            gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            faces = face_cascade.detectMultiScale(gray_image, scaleFactor=1.3, minNeighbors=5)
+            for (x, y, w, h) in faces:
+                cv2.rectangle(image, (x, y), (x+w, y+h), (255, 0, 0), 2)
+            face = image[y:y + h, x:x + w] if faces is not None and len(faces) > 0 else None
+            if face is not None:
+                face = Image.fromarray(face)
+                face = np.asarray(face)
+                return face, faces
+            return None, None
+
+        
+
+        try:
+            cap = cv2.VideoCapture(0)
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    print("Unable to receive frame. Exiting...")
+                    break
+
+                cv2.imwrite('input_image.jpg', frame)
+                cv2.imshow('Video Frame', frame)  # Display the live video frame
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):  # Waits 1 ms and checks if 'q' is pressed
+                    break
+                
+                face, faces = extract_face('input_image.jpg')
+
+                if face is not None:
+                    face_encodings = face_recognition.face_encodings(face)
+                    if face_encodings:
+                        face_encoding = face_encodings[0]  # Consider the first face
+                        known_face_encodings = []
+                        known_face_ids = []
+
+                        for etudient in students_of_group:
+                            if etudient.Incoding_Face:
+                                known_face_encodings.append(np.array(json.loads(etudient.Incoding_Face)))
+                                known_face_ids.append(str(etudient.id))
+
+                        matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+                        face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+                        best_match_index = np.argmin(face_distances)
+                        if matches[best_match_index]:
+                            recognized_student_id = known_face_ids[best_match_index]
+                            recognized_student_ids.add(recognized_student_id)
+
+                            if not Assister.objects.filter(ID_Etudient_id=recognized_student_id, ID_Seances=last_seance).exists():
+                                Assister.objects.create(ID_Etudient_id=recognized_student_id, ID_Seances=last_seance)
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+        finally:
+            cap.release()
+            cv2.destroyAllWindows()
+
+            # Créez des objets d'absence pour tous les étudiants non reconnus comme présents.
+            for student in students_of_group:
+                if str(student.id) not in recognized_student_ids:
+                    Absence.objects.create(
+                        ID_Etudient_id=student.id,
+                        ID_Seances=last_seance,
+                        Date=last_seance.Date,
+                        Justifier=False
+                    )
+
+        return JsonResponse({'status': 'complete'})
+'''
 class AbsenceViewSet(ModelViewSet):
     queryset = Absence.objects.all()
     serializer_class = AbsenceSerializer 
@@ -251,6 +365,19 @@ class AssisterViewSet(ModelViewSet):
     queryset = Assister.objects.all()
     serializer_class = AssisterSerializer
  
+ 
+class AssisterBySeanceAPIView(APIView):
+    def get(self, request, seance_id):
+        assister_objects = Assister.objects.filter(ID_Seances=seance_id)
+        serializer = AssisterSerializer(assister_objects, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class SeancesByEnseignantAPIView(APIView):
+    def get(self, request, enseignant_id):
+        seances_objects = Seances.objects.filter(ID_Enseignant=enseignant_id)
+        serializer = SeancesSerializer(seances_objects, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+         
 class Etat_Etudient_ModuleViewSet(ModelViewSet):
     queryset = Etat_Etudient_Module.objects.all()
     serializer_class = Etat_Etudient_ModuleSerializer 

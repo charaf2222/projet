@@ -1,0 +1,73 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #2A2D34; /* Gris très foncé comme couleur de fond générale */
+    color: #E1E1E1; /* Gris clair pour le texte standard */
+}
+
+header {
+    background-color: #1C1F26; /* Noir bleuté pour le header */
+    color: #FFFFFF; /* Blanc pour le texte dans le header */
+    padding: 20px 40px;
+    text-align: center;
+}
+
+nav {
+    background-color: #333840; /* Gris foncé pour la barre de navigation */
+    padding: 10px;
+    text-align: center;
+}
+
+nav button {
+    margin: 10px;
+    padding: 10px 20px;
+    background-color: #4A4E58; /* Gris moyen pour les boutons */
+    color: #FFFFFF; /* Blanc pour le texte des boutons */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+nav button:hover {
+    background-color: #686D76; /* Gris clair pour le bouton au survol */
+}
+
+main {
+    padding: 20px;
+    background-color: #2A2D34; /* Assorti au fond général pour un effet homogène */
+}
+
+section {
+    display: none;
+    margin-top: 20px; /* Marge au-dessus de la section */
+    background-color: #333840; /* Un peu plus clair que le fond pour contraster */
+    padding: 20px;
+    border-radius: 8px;
+}
+
+section.active {
+    display: block;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px; /* Marge au-dessus du tableau */
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #4A4E58; /* Gris moyen pour les bordures */
+    text-align: left;
+}
+
+th {
+    background-color: #4A4E58; /* Gris moyen pour les en-têtes */
+    color: white;
+}
+
+tr:nth-child(even) {
+    background-color: #3B3F48; /* Gris foncé pour les lignes alternées */
+}
