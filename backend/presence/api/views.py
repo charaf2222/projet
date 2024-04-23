@@ -1,4 +1,6 @@
 from rest_framework.viewsets import ModelViewSet
+import tkinter as tk
+from PIL import Image, ImageTk
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from ..models import Etudient, Enseignant, Modules, Groupe, Seances, Absence, Assister, Etat_Etudient_Module, Reconnaissance_Faciale, CapturedImage
@@ -216,48 +218,86 @@ class EtudientViewSet(ModelViewSet):
  
 
 class CompareFacesView(APIView):
-    permission_classes = []  # Adjust as needed
+
+
+
+    
+    # Update based on security needs
+    permission_classes = []
 
     def post(self, request, *args, **kwargs):
-        received_encodings = json.loads(request.data.get('encodings'))
-        print("TYPE :: ", type(received_encodings))
-        print(received_encodings)
-        len1= len(received_encodings)
-        len2 = [len(val) for val in received_encodings]
-        print("len1 : ", len1)
-        print("\n len2 : ", len2)
-        if not received_encodings:
-            return Response({'error': 'Encodings not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        print(request.data)
+        try:
+            # Ensure 'encodings' key exists and has content
+            encodings_data = request.data.get('encodings')
+            if not encodings_data:
+                return Response({'error': 'Encodings not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-        
-        received_encodings = np.asarray(received_encodings)
-        received_encodings = Image.fromarray(received_encodings)
-        # received_encodings = np.array(received_encodings)
-        print("recived aprés PIL : ", received_encodings)
-        
-        closest_match = None
-        min_distance = float('inf')
+            received_encodings = json.loads(encodings_data)
+            if not received_encodings:
+                return Response({'error': 'Invalid or empty encodings array'}, status=status.HTTP_400_BAD_REQUEST)
 
-        for etudient in Etudient.objects.all():
-            if not etudient.Incoding_Face:
-                continue
+            # Convert to numpy array and then to PIL Image
+            received_encodings = np.array(received_encodings)
+            print("received_encodings : ", received_encodings)
+            received_encodings = np.squeeze(received_encodings)
+            received_encodings_image = Image.fromarray(received_encodings.astype('uint8'), 'RGB')
+            
+            # Créer une fenêtre Tkinter
+            #fenetre = tk.Tk()
 
-            stored_encodings = json.loads(etudient.Incoding_Face)
+            # Convertir l'image PIL en format Tkinter
+            #image_tk = ImageTk.PhotoImage(received_encodings_image)
+
+            # Créer un widget Label dans la fenêtre pour afficher l'image
+            #label_image = tk.Label(fenetre, image=image_tk)
+            #label_image.pack()  # Pack le widget dans la fenêtre
+
+            # Lancer la boucle principale Tkinter pour afficher la fenêtre
+            #fenetre.mainloop()
+            
+            print("received_encodings_image : ", received_encodings_image)
+
+            # Convert PIL Image back to numpy array for face recognition
+            received_encodings = received_encodings.astype(np.uint8)  # Ensure proper data type
             face_encodings = face_recognition.face_encodings(received_encodings)
-            print("encoding visage : : : ", face_encodings)
-            stored_encodings = np.array(stored_encodings)
-            distance = np.linalg.norm(received_encodings - stored_encodings)
+            print("face_encodings : ", face_encodings)
+            if not face_encodings:
+                return Response({'error': 'No faces found in the encoding'}, status=status.HTTP_404_NOT_FOUND)
 
-            if distance < min_distance:
-                min_distance = distance
-                closest_match = etudient
+            # Consider the first face detected
+            face_encoding = face_encodings[0]
+            print("face_encoding : ", face_encoding)
 
-        if closest_match:
-            serializer = EtudientSerializer(closest_match)
-            print("serialiser : ", serializer)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
+            # Fetch all students' face data from the database
+            known_face_encodings = []
+            known_face_ids = []
+            students = Etudient.objects.all()
+
+            for student in students:
+                if student.Incoding_Face:
+                    known_face_encodings.append(np.array(json.loads(student.Incoding_Face)))
+                    known_face_ids.append(student.id)
+
+            # Compare faces
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+
+            # Find the closest match
+            if matches:
+                best_match_index = np.argmin(face_distances)
+                print("known_face_ids[best_match_index] : ", known_face_ids[best_match_index])
+                print("best match index : ", best_match_index)
+                if matches[best_match_index]:
+                    recognized_student = students[best_match_index]
+                    print("recognized_student", recognized_student)
+                    serializer = EtudientSerializer(recognized_student)
+                    print("serializer", serializer)
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+            
             return Response({'message': 'No matching face found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 '''
 
