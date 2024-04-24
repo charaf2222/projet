@@ -39,8 +39,8 @@ function App() {
     //<div className="App">
           //<HomeEnseignant />
     //</div>
-    //<RouterProvider router = {router}/>
-    <MyComponent/>
+    <RouterProvider router = {router}/>
+    //<MyComponent/>
 
   );
 }

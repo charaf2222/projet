@@ -218,17 +218,13 @@ class EtudientViewSet(ModelViewSet):
  
 
 class CompareFacesView(APIView):
-
-
-
-    
-    # Update based on security needs
+    # Mise à jour en fonction des besoins de sécurité
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
-        print(request.data)
+        # print(request.data)
         try:
-            # Ensure 'encodings' key exists and has content
+            # Assurez-vous que la clé 'encodings' existe et contient des données
             encodings_data = request.data.get('encodings')
             if not encodings_data:
                 return Response({'error': 'Encodings not provided'}, status=status.HTTP_400_BAD_REQUEST)
@@ -237,67 +233,77 @@ class CompareFacesView(APIView):
             if not received_encodings:
                 return Response({'error': 'Invalid or empty encodings array'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Convert to numpy array and then to PIL Image
-            received_encodings = np.array(received_encodings)
-            print("received_encodings : ", received_encodings)
-            received_encodings = np.squeeze(received_encodings)
-            received_encodings_image = Image.fromarray(received_encodings.astype('uint8'), 'RGB')
-            
-            # Créer une fenêtre Tkinter
-            #fenetre = tk.Tk()
+            recognized_students = []
 
-            # Convertir l'image PIL en format Tkinter
-            #image_tk = ImageTk.PhotoImage(received_encodings_image)
+            for face_data in received_encodings:
+                # Convertir en tableau numpy puis en image PIL
+                face_data = np.array(face_data)
+                face_image = Image.fromarray(face_data.astype('uint8'), 'RGB')
 
-            # Créer un widget Label dans la fenêtre pour afficher l'image
-            #label_image = tk.Label(fenetre, image=image_tk)
-            #label_image.pack()  # Pack le widget dans la fenêtre
+                # Convertir l'image PIL en tableau numpy pour la reconnaissance faciale
+                face_data = np.array(face_image)
+                face_encodings = face_recognition.face_encodings(face_data)
 
-            # Lancer la boucle principale Tkinter pour afficher la fenêtre
-            #fenetre.mainloop()
-            
-            print("received_encodings_image : ", received_encodings_image)
+                # S'il n'y a pas de visage détecté, passer à la prochaine itération
+                if not face_encodings:
+                    continue
 
-            # Convert PIL Image back to numpy array for face recognition
-            received_encodings = received_encodings.astype(np.uint8)  # Ensure proper data type
-            face_encodings = face_recognition.face_encodings(received_encodings)
-            print("face_encodings : ", face_encodings)
-            if not face_encodings:
-                return Response({'error': 'No faces found in the encoding'}, status=status.HTTP_404_NOT_FOUND)
+                face_encoding = face_encodings[0]  # Considérez le premier visage détecté
 
-            # Consider the first face detected
-            face_encoding = face_encodings[0]
-            print("face_encoding : ", face_encoding)
+                # Fetch all students' face data from the database
+                known_face_encodings = []
+                known_face_ids = []
+                known_face_names = []
+                students = Etudient.objects.all()
 
-            # Fetch all students' face data from the database
-            known_face_encodings = []
-            known_face_ids = []
-            students = Etudient.objects.all()
+                for student in students:
+                    if student.Incoding_Face:
+                        known_face_encodings.append(np.array(json.loads(student.Incoding_Face)))
+                        known_face_ids.append(student.id)
+                        known_face_names.append(student.Nom)
 
-            for student in students:
-                if student.Incoding_Face:
-                    known_face_encodings.append(np.array(json.loads(student.Incoding_Face)))
-                    known_face_ids.append(student.id)
+                # Compare faces
+                matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+                face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
 
-            # Compare faces
-            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
-            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+                # Trouver la correspondance la plus proche
+                # Find the closest match
+                if matches:
+                    best_match_index = np.argmin(face_distances)
+                    id_st = known_face_ids[best_match_index]
+                    nom_st = known_face_names[best_match_index]
+                    print("known_face_ids[best_match_index] : ", id_st)
+                    print("best match index : ", best_match_index)
+                    print("matches[best_match_index] : ", matches[best_match_index])
+                    # if matches[best_match_index]:
+                    print("students is =>", nom_st)
+                    # Accédez à l'instance d'étudiant à partir de l'ID
+                    etudiant = Etudient.objects.get(id=id_st)
 
-            # Find the closest match
-            if matches:
-                best_match_index = np.argmin(face_distances)
-                print("known_face_ids[best_match_index] : ", known_face_ids[best_match_index])
-                print("best match index : ", best_match_index)
-                if matches[best_match_index]:
-                    recognized_student = students[best_match_index]
-                    print("recognized_student", recognized_student)
-                    serializer = EtudientSerializer(recognized_student)
-                    print("serializer", serializer)
-                    return Response(serializer.data, status=status.HTTP_200_OK)
-            
-            return Response({'message': 'No matching face found'}, status=status.HTTP_404_NOT_FOUND)
+                    # Affichez les détails de l'étudiant
+                    print("ID:", etudiant.id)
+                    print("Nom:", etudiant.Nom)
+                    print("Prenom:", etudiant.Prenom)
+
+                    # Convertir l'étudiant en dictionnaire
+                    student_dict = {
+                        'id': student.id,
+                        'Nom': student.Nom,
+                        'Prenom': student.Prenom,
+                        # Ajoutez d'autres champs si nécessaire
+                    }
+                    
+                    # Ajouter le dictionnaire de l'étudiant à la liste recognized_students
+                    recognized_students.append(student_dict)
+
+            if recognized_students:
+                return Response(recognized_students, status=status.HTTP_200_OK)
+            else:
+                return Response({'message': 'No matching face found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 '''
 
