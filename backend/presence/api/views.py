@@ -218,13 +218,10 @@ class EtudientViewSet(ModelViewSet):
  
 
 class CompareFacesView(APIView):
-    # Mise à jour en fonction des besoins de sécurité
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
-        # print(request.data)
         try:
-            # Assurez-vous que la clé 'encodings' existe et contient des données
             encodings_data = request.data.get('encodings')
             if not encodings_data:
                 return Response({'error': 'Encodings not provided'}, status=status.HTTP_400_BAD_REQUEST)
@@ -234,77 +231,103 @@ class CompareFacesView(APIView):
                 return Response({'error': 'Invalid or empty encodings array'}, status=status.HTTP_400_BAD_REQUEST)
 
             recognized_students = []
+            recognized_student_ids = set()
+            absent_students = []
+
+            last_seance = Seances.objects.all().order_by('-id').first()
+            students_of_group = None
+
+            if not last_seance:
+                return JsonResponse({'error': 'No seances found'}, status=400)
+
+            if last_seance.ID_Groupe:
+                students_of_group = Etudient.objects.filter(Id_Groupe=last_seance.ID_Groupe)
+            else:
+                return JsonResponse({'error': 'Last seance has no group associated'}, status=400)
 
             for face_data in received_encodings:
-                # Convertir en tableau numpy puis en image PIL
                 face_data = np.array(face_data)
                 face_image = Image.fromarray(face_data.astype('uint8'), 'RGB')
-
-                # Convertir l'image PIL en tableau numpy pour la reconnaissance faciale
                 face_data = np.array(face_image)
                 face_encodings = face_recognition.face_encodings(face_data)
 
-                # S'il n'y a pas de visage détecté, passer à la prochaine itération
                 if not face_encodings:
                     continue
 
-                face_encoding = face_encodings[0]  # Considérez le premier visage détecté
+                face_encoding = face_encodings[0]
 
-                # Fetch all students' face data from the database
                 known_face_encodings = []
                 known_face_ids = []
                 known_face_names = []
                 students = Etudient.objects.all()
 
-                for student in students:
+                for student in students_of_group:
                     if student.Incoding_Face:
                         known_face_encodings.append(np.array(json.loads(student.Incoding_Face)))
                         known_face_ids.append(student.id)
                         known_face_names.append(student.Nom)
 
-                # Compare faces
                 matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
                 face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
 
-                # Trouver la correspondance la plus proche
-                # Find the closest match
                 if matches:
                     best_match_index = np.argmin(face_distances)
                     id_st = known_face_ids[best_match_index]
                     nom_st = known_face_names[best_match_index]
-                    print("known_face_ids[best_match_index] : ", id_st)
-                    print("best match index : ", best_match_index)
-                    print("matches[best_match_index] : ", matches[best_match_index])
-                    # if matches[best_match_index]:
-                    print("students is =>", nom_st)
-                    # Accédez à l'instance d'étudiant à partir de l'ID
+                    
                     etudiant = Etudient.objects.get(id=id_st)
+                    recognized_student_ids.add(etudiant.id)
+                    
+                    if not Assister.objects.filter(ID_Etudient_id=etudiant.id, ID_Seances=last_seance).exists():
+                        Assister.objects.create(ID_Etudient_id=etudiant.id, ID_Seances=last_seance)
 
-                    # Affichez les détails de l'étudiant
-                    print("ID:", etudiant.id)
-                    print("Nom:", etudiant.Nom)
-                    print("Prenom:", etudiant.Prenom)
-
-                    # Convertir l'étudiant en dictionnaire
                     student_dict = {
-                        'id': student.id,
-                        'Nom': student.Nom,
-                        'Prenom': student.Prenom,
-                        # Ajoutez d'autres champs si nécessaire
+                        'id': etudiant.id,
+                        'Nom': etudiant.Nom,
+                        'Prenom': etudiant.Prenom,
                     }
                     
-                    # Ajouter le dictionnaire de l'étudiant à la liste recognized_students
                     recognized_students.append(student_dict)
+                else:
+                    absent_students.append(etudiant)
 
             if recognized_students:
                 return Response(recognized_students, status=status.HTTP_200_OK)
             else:
                 return Response({'message': 'No matching face found'}, status=status.HTTP_404_NOT_FOUND)
+   
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
+class MarquerAbsenceView(APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        
+        last_seance = Seances.objects.all().order_by('-id').first()
+
+        if not last_seance:
+            return JsonResponse({'error': 'No seances found'}, status=400)
+
+        students_of_group = Etudient.objects.filter(Id_Groupe=last_seance.ID_Groupe)
+        assisted_students = Assister.objects.filter(ID_Seances=last_seance)
+
+        for student in students_of_group:
+            if student.id not in [assist.ID_Etudient_id for assist in assisted_students]:
+                if not Absence.objects.filter(ID_Etudient_id=student.id, ID_Seances=last_seance).exists():
+                    Absence.objects.create(
+                        ID_Etudient_id=student.id,
+                        ID_Seances=last_seance,
+                        Date=last_seance.Date,
+                        Justifier=False
+                    )
+
+        return Response({'message': 'Absences marked successfully'}, status=status.HTTP_200_OK)
+
+
+    
 '''
 
 // c'est le code que j'ai fait la dernier fois et il marche bien
@@ -414,15 +437,57 @@ class AssisterViewSet(ModelViewSet):
  
 class AssisterBySeanceAPIView(APIView):
     def get(self, request, seance_id):
+        # Récupérer les objets d'assistance pour la séance donnée
         assister_objects = Assister.objects.filter(ID_Seances=seance_id)
-        serializer = AssisterSerializer(assister_objects, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        # Récupérer les objets d'absence pour la séance donnée
+        absence_objects = Absence.objects.filter(ID_Seances=seance_id)
+        
+        
+
+        # Liste pour stocker les données à envoyer en réponse
+        data = []
+
+        # Pour chaque objet d'assistance, récupérer le nom, le prénom et définir l'état comme "présent"
+        for assister in assister_objects:
+            etat_etudient_module_ = Etat_Etudient_Module.objects.filter(ID_Etudient=assister.ID_Etudient, ID_Module=assister.ID_Seances.ID_Module)
+            etudiant = assister.ID_Etudient
+            for et in etat_etudient_module_:
+                nb_a = et.Nbr_Absence
+                nb_a_j = et.Nbr_Absence_Justifier
+            data.append({
+                "Nom": etudiant.Nom,
+                "Prenom": etudiant.Prenom,
+                "Etat": "present", 
+                "Nbr_Absence": nb_a,
+                "Nbr_Absence_Justifier": nb_a_j
+            })
+
+        # Pour chaque objet d'absence, récupérer le nom, le prénom et définir l'état comme "absent"
+        for absence in absence_objects:
+            etat_etudient_module_ = Etat_Etudient_Module.objects.filter(ID_Etudient=absence.ID_Etudient, ID_Module=absence.ID_Seances.ID_Module)
+            etudiant = absence.ID_Etudient
+            for et in etat_etudient_module_:
+                nb_a = et.Nbr_Absence
+                nb_a_j = et.Nbr_Absence_Justifier
+            data.append({
+                "Nom": etudiant.Nom,
+                "Prenom": etudiant.Prenom,
+                "Etat": "absent",
+                "Nbr_Absence": nb_a,
+                "Nbr_Absence_Justifier": nb_a_j
+            })
+
+        # Renvoyer la réponse au format JSON
+        return Response(data, status=status.HTTP_200_OK)
     
 class SeancesByEnseignantAPIView(APIView):
     def get(self, request, enseignant_id):
         seances_objects = Seances.objects.filter(ID_Enseignant=enseignant_id)
         serializer = SeancesSerializer(seances_objects, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
          
 class Etat_Etudient_ModuleViewSet(ModelViewSet):
     queryset = Etat_Etudient_Module.objects.all()

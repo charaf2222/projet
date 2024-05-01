@@ -13,22 +13,41 @@
         body, html {
             height: 100%;
             margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             background-color: #020202; 
+            display: flex;
+            flex-direction: column;
         }
         #videoWrapper {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh; 
+            flex-grow: 1;
+            position: relative;
         }
         #cam_input {
             display: none; 
         }
         #canvas_output {
             background-color: aqua;
+        }
+        #tableWrapper {
+            text-align: center;
+            padding: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid white;
+            padding: 8px;
+            color: white;
+        }
+        th {
+            background-color: #333;
+        }
+        td {
+            background-color: #555;
         }
     </style>
 </head>
@@ -37,111 +56,158 @@
         <video id="cam_input" height="480" width="640"></video>
         <canvas id="canvas_output"></canvas>
     </div>
+    <button id="stopButton" onclick="stopCamera()">Arrêter la caméra</button>
+    <div id="tableWrapper">
+        <h2>Tableau des Présences</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Prénom</th>
+                    <th>Module</th>
+                    <th>Nbr Absences</th>
+                    <th>Nbr Absences Justifiées</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Les données de tableau seront insérées ici dynamiquement -->
+            </tbody>
+        </table>
+    </div>
 <script type="text/JavaScript">
+    // Votre code JavaScript ici
+    let videoStream;
+
+    function openCvReady() {
+        cv['onRuntimeInitialized']=()=>{
+            let video = document.getElementById("cam_input"); // video est l'ID de la balise vidéo
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+            .then(function(stream) {
+                videoStream = stream; // Stocker le flux vidéo pour l'arrêter plus tard
+                video.srcObject = stream;
+                video.play();
+            })
+            .catch(function(err) {
+                console.log("Une erreur est survenue! " + err);
+            });
+            let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+            let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+            let gray = new cv.Mat();
+            let cap = new cv.VideoCapture(cam_input);
+            let faces = new cv.RectVector();
+            let classifier = new cv.CascadeClassifier();
+            let utils = new Utils('errorMessage');
+            test = new cv.Mat();
+
+            let faceCascadeFile = 'haarcascade_frontalface_default.xml'; 
+            utils.createFileFromUrl(faceCascadeFile, faceCascadeFile, () => {
+                classifier.load(faceCascadeFile); // dans le rappel, chargez le cascade depuis le fichier
+            });
+
+            const FPS = 12;
+            const sizeImage = 224
+            let iter = 0
+            function processVideo() {
+                iter++
+                console.log('iter', iter);
+                if (iter>15000) {
+                    return
+                }
+                let begin = Date.now();
+                cap.read(src);
+                src.copyTo(dst);
+                cv.cvtColor(dst, gray, cv.COLOR_BGR2GRAY, 0);
+
+                try {
+                    classifier.detectMultiScale(gray, faces, 1.1, 3, 0);
+                    console.log(faces.size());
+                } catch (err) {
+                    console.log(err);
+                }
+                let facesData = []
                 
+                for (let i = 0; i < faces.size(); ++i) {
+                    let structuredArray = [];
+                    const face = faces.get(i);
+                    const point1 = new cv.Point(face.x, face.y);
+                    const point2 = new cv.Point(face.x + face.width, face.y + face.height);
+                    cv.rectangle(dst, point1, point2, [0, 0, 255, 255]);
+                    const faceROI = src.roi(face);
+                    const roiRGB = new cv.Mat();
+                    cv.cvtColor(faceROI, roiRGB, cv.COLOR_BGR2RGB); 
+                    const resizedRoi = new cv.Mat();
+                    cv.resize(roiRGB, resizedRoi, new cv.Size(sizeImage, sizeImage));
 
-function openCvReady() {
-    cv['onRuntimeInitialized']=()=>{
-        let video = document.getElementById("cam_input"); // video is the id of video tag
-        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-        .then(function(stream) {
-            video.srcObject = stream;
-            video.play();
+                    test = new cv.Mat();
+                    cv.resize(roiRGB, test, new cv.Size(200, 200));
+                    console.log(resizedRoi);
+           
+                    for (let i = 0; i < resizedRoi.rows; i++) {
+                        let rowArray = [];
+                        for (let j = 0; j < resizedRoi.cols; j++) {
+                            let pixel = [resizedRoi.ucharPtr(i, j)[0], resizedRoi.ucharPtr(i, j)[1],resizedRoi.ucharPtr(i, j)[2]]; // B
+                            //????????????????
+                            rowArray.push(pixel);
+                        }
+                        structuredArray.push(rowArray);
+                                
+                }
+                
+                facesData.push(structuredArray)
+                }
+                console.log("facesData",facesData);
+                let formData = new FormData();              
+                    formData.append("encodings", JSON.stringify(facesData));
+                    fetch('http://127.0.0.1:8000/api/reconize/', { 
+                        method: 'POST',
+                        body: formData, 
+                        redirect: 'follow'
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => console.log('Success:', data))
+                    .catch((error) => console.error('Error:', error));
+
+                cv.imshow("canvas_output", dst);
+                // planifier le prochain
+                let delay = 1000/FPS - (Date.now() - begin);
+                setTimeout(processVideo, delay);
+            }
+            // planifier le premier
+            setTimeout(processVideo, 0);
+        };
+    }
+
+    function stopCamera() {
+        videoStream.getTracks().forEach(track => {
+            track.stop();
+            let formData2 = new FormData();              
+            formData2.append("stop", "stop");
+            fetch('http://127.0.0.1:8000/api/stop/', { 
+                method: 'POST',
+                body: formData2, 
+                redirect: 'follow'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => { console.log('Success_Stop:', data)
+                // Revenir à la page précédente
+                window.history.go(-1);
         })
-        .catch(function(err) {
-            console.log("An error occurred! " + err);
+            .catch((error) => console.error('Error:', error));
         });
-        let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
-        let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
-        let gray = new cv.Mat();
-        let cap = new cv.VideoCapture(cam_input);
-        let faces = new cv.RectVector();
-        let classifier = new cv.CascadeClassifier();
-        let utils = new Utils('errorMessage');
-    test = new cv.Mat();
+        console.log("Camera arrêtée!");
+        window.history.go(-1);
 
-        let faceCascadeFile = 'haarcascade_frontalface_default.xml'; 
-        utils.createFileFromUrl(faceCascadeFile, faceCascadeFile, () => {
-            classifier.load(faceCascadeFile); // in the callback, load the cascade from file 
-            
-        });
-
-        const FPS = 12;
-        const sizeImage = 224
-        let iter = 0
-        function processVideo() {
-            iter++
-            console.log('iter', iter);
-            if (iter>15000) {
-                return
-            }
-            let begin = Date.now();
-            cap.read(src);
-            src.copyTo(dst);
-            cv.cvtColor(dst, gray, cv.COLOR_BGR2GRAY, 0);
-
-            try {
-                classifier.detectMultiScale(gray, faces, 1.1, 3, 0);
-                console.log(faces.size());
-            } catch (err) {
-                console.log(err);
-            }
-            let facesData = []
-            
-            for (let i = 0; i < faces.size(); ++i) {
-                let structuredArray = [];
-                const face = faces.get(i);
-                const point1 = new cv.Point(face.x, face.y);
-                const point2 = new cv.Point(face.x + face.width, face.y + face.height);
-                cv.rectangle(dst, point1, point2, [0, 0, 255, 255]);
-                const faceROI = src.roi(face);
-                const roiRGB = new cv.Mat();
-                cv.cvtColor(faceROI, roiRGB, cv.COLOR_BGR2RGB); 
-                const resizedRoi = new cv.Mat();
-                cv.resize(roiRGB, resizedRoi, new cv.Size(sizeImage, sizeImage));
-
-                test = new cv.Mat();
-                cv.resize(roiRGB, test, new cv.Size(200, 200));
-                console.log(resizedRoi);
-       
-                for (let i = 0; i < resizedRoi.rows; i++) {
-                    let rowArray = [];
-                    for (let j = 0; j < resizedRoi.cols; j++) {
-                        let pixel = [resizedRoi.ucharPtr(i, j)[0], resizedRoi.ucharPtr(i, j)[1],resizedRoi.ucharPtr(i, j)[2]]; // B
-                        //????????????????
-                        rowArray.push(pixel);
-                    }
-                    structuredArray.push(rowArray);
-                           
-            }
-            
-            facesData.push(structuredArray)
-            }
-            console.log("facesData",facesData);
-            let formData = new FormData();              
-                formData.append("encodings", JSON.stringify(facesData));
-                fetch('http://127.0.0.1:8000/api/reconize/', { 
-                    method: 'POST',
-                    body: formData, 
-                    redirect: 'follow'
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => console.log('Success:', data))
-                .catch((error) => console.error('Error:', error));
-
-            cv.imshow("canvas_output", dst);
-            // schedule next one.
-            let delay = 1000/FPS - (Date.now() - begin);
-            setTimeout(processVideo, delay);
-        }
-        // schedule first one.
-        setTimeout(processVideo, 0);
-    };
-}
+    }
 </script>
+</body>
 </html>

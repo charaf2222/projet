@@ -98,7 +98,8 @@ function StartSession() {
   };
 
   if (isSubmitted) {
-    return <TableuDesPresences />;
+    // return <TableuDesPresences />;
+    window.location.href = 'http://localhost:8080/FaceD.html'; // Use the full URL
   }
 
   return (
