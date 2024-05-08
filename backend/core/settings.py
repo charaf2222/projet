@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -43,7 +44,7 @@ INSTALLED_APPS = [
     'presence',
 ]
 
-CORS_ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:8080']
+CORS_ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:8080', 'http://localhost:3000']
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

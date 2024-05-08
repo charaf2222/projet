@@ -1,51 +1,54 @@
-/* Définissez ce fichier CSS dans le même répertoire que votre composant React, par exemple 'StartSession.css' */
+/* StartSession.css - Ajustements pour la hauteur des inputs */
 .form-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background-color: #333;
-    padding: 20px;
-    border-radius: 8px;
-    color: white;
-    width: 100%;
-    max-width: 400px; /* Ajustez la largeur maximale selon vos besoins */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    margin: 20px auto;
-  }
-  
-  .form-group {
-    width: 100%;
-    margin-bottom: 20px;
-  }
-  
-  .form-group label {
-    display: block;
-    margin-bottom: 5px;
-  }
-  
-  .form-group input,
-  .form-group select {
-    padding: 10px;
-    width: 100%;
-    border-radius: 5px;
-    border: 1px solid #555;
-    background-color: #222;
-    color: lightgray;
-  }
-  
-  .form-group button {
-    padding: 10px 20px;
-    cursor: pointer;
-    background-color: gray;
-    color: black;
-    border: none;
-    border-radius: 5px;
-    font-weight: bold;
-    width: 100%;
-  }
-  
-  .form-group button:hover {
-    background-color: #555;
-  }
-  
-  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #f8f9fa;
+  padding: 0;
+  border-radius: 8px;
+  color: #333;
+  width: 100%; /* Prend toute la largeur */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+}
+
+.form-group {
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 1px;
+  color: #555;
+}
+
+.form-group input,
+.form-group select {
+  padding: 2px 280px; /* Augmentation du padding vertical pour agrandir la hauteur */
+  font-size: 16px;
+  width: 100;
+  height: 45px; /* Hauteur fixe pour un contrôle plus grand */
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  color: #333;
+  box-shadow: inset 0 2px 1px rgba(0, 0, 0, 0.05);
+}
+
+.form-group button {
+  padding: 15px 20px; /* Padding vertical augmenté pour les boutons */
+  cursor: pointer;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  width: 100%;
+  transition: background-color 0.3s;
+  margin-top: 20px;
+}
+
+.form-group button:hover {
+  background-color: #0056b3;
+}

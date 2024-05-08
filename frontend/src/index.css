@@ -1,12 +1,10 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  font-family: 'Inter', system-ui, 'Avenir', 'Helvetica', 'Arial', sans-serif;
+  line-height: 1.6;  /* Amélioration de la lisibilité */
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  color-scheme: light;
+  color: #1a202c;  /* Texte plus foncé pour un contraste fort sur fond clair */
+  background-color: #ffffff;  /* Fond blanc pour une apparence fraîche et lumineuse */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -15,54 +13,55 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+  color: #2b6cb0;  /* Bleu profond pour les liens */
+  text-decoration: none;  /* Suppression du soulignement pour un look plus propre */
 }
 a:hover {
-  color: #535bf2;
+  color: #2c5282;  /* Bleu plus foncé pour le survol */
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;  /* S'assure que html et body prennent la largeur totale */
+  height: 100%;  /* S'assure que html et body prennent la hauteur totale */
+  box-sizing: border-box;  /* Inclut le padding et la bordure dans la dimension de l'élément */
+  overflow-x: hidden;  /* Cache la barre de défilement horizontale */
 }
 
 body {
-  margin: 0;
   display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  flex-direction: column;  /* Organise le contenu verticalement */
+  align-items: stretch;  /* Étire les éléments pour remplir la largeur */
+  min-height: 100vh;  /* Utilise au moins toute la hauteur de la fenêtre */
+  overflow-y: auto;  /* Permet le défilement vertical si nécessaire */
 }
 
 h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+  font-size: 3.5em;
+  color: #2a4365;  /* Bleu foncé pour les titres, ajoutant une touche d'élégance */
+  margin-top: 20px;  /* Ajoute un peu d'espace au-dessus du titre */
+  text-align: center;  /* Centrage du texte du titre */
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
+  border-radius: 10px;
+  border: 2px solid #cbd5e0;  /* Bordure subtile pour les boutons */
+  padding: 0.75em 1.5em;
   font-size: 1em;
   font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #e2e8f0;  /* Bleu très clair pour un aspect frais */
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition: background-color 0.3s, border-color 0.3s, transform 0.3s;  /* Transitions pour interactions visuelles */
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+button:hover {
+  background-color: #bee3f8;  /* Changement de couleur au survol */
+  border-color: #3182ce;  /* Bleu plus vif pour la bordure au survol */
+  transform: translateY(-3px);  /* Léger effet de soulèvement au survol */
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px solid #63b3ed;  /* Contour bleu clair pour l'accessibilité */
 }

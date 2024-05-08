@@ -1,24 +1,18 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import './HomeEnseignant.css';
-import TabButton from './components/TabButton';
 import Dashboard from './components/Dashboard';
 import StartSession from './components/StartSession';
 import AttendanceReport from './components/AttendanceReport';
 import Communication from './components/Communication';
 
 const HomeEnseignant = () => {
-
   let { enseignantId } = useParams();
-
   console.log('ID de lenseignant:', enseignantId);
 
-
   const [selectedTopic, setSelectedTopic] = useState('dashboard');
+  let content;
 
-  let content; // Cette variable contiendra le composant à afficher
-
-  // Déterminer quel composant doit être affiché
   if (selectedTopic === 'dashboard') {
     content = <Dashboard />;
   } else if (selectedTopic === 'start-session') {
@@ -35,34 +29,16 @@ const HomeEnseignant = () => {
         <h1>Gestion de Présence</h1>
       </header>
       <main>
-        <menu>
-          <TabButton
-            isSelected={selectedTopic === 'dashboard'}
-            onSelect={() => setSelectedTopic('dashboard')}
-          >
-            Tableau de Bord
-          </TabButton>
-          <TabButton
-            isSelected={selectedTopic === 'start-session'}
-            onSelect={() => setSelectedTopic('start-session')}
-          >
-            Commencer une Séance
-          </TabButton>
-          <TabButton
-            isSelected={selectedTopic === 'attendance-report'}
-            onSelect={() => setSelectedTopic('attendance-report')}
-          >
-            Rapport des Présences
-          </TabButton>
-          <TabButton
-            isSelected={selectedTopic === 'communication'}
-            onSelect={() => setSelectedTopic('communication')}
-          >
-            Communication avec les Étudiants
-          </TabButton>
-        </menu>
-        
-          {content}
+        <div className="sidebar">
+          <div className="logo">Admin</div>
+          <ul className="nav">
+            <li><a href="#" onClick={(e) => { e.preventDefault(); setSelectedTopic('dashboard'); }}><span className="icon">&#128202;</span> Tableau de Bord</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); setSelectedTopic('start-session'); }}><span className="icon">&#127979;</span> Commencer une Séance</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); setSelectedTopic('attendance-report'); }}><span className="icon">&#128218;</span> Rapport des Présences</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); setSelectedTopic('communication'); }}><span className="icon">&#128101;</span> Communication avec les Étudiants</a></li>
+          </ul>
+        </div>
+        {content}
       </main>
     </div>
   );

@@ -68,7 +68,7 @@ function StartSession() {
       });
 
       if (response.ok) {
-        alert('Séance ajoutée avec succès!');
+        
         setIsSubmitted(true);
 
         // Supposons que l'appel à reconize est une étape nécessaire et indépendante
@@ -93,7 +93,7 @@ function StartSession() {
       }
     } catch (error) {
       console.error('Erreur lors de la soumission:', error);
-      alert('Erreur lors de l\'envoi du formulaire');
+      
     }
   };
 

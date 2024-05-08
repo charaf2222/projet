@@ -1,79 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Opencv JS</title>
+    <title>OpenCV JS Camera</title>
     <script async src="js/opencv.js" onload="openCvReady();"></script>
     <script src="js/utils.js"></script>
-
     <style>
         body, html {
             height: 100%;
             margin: 0;
-            background-color: #020202; 
+            background-color: #333;
+            color: #fff;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
         }
         #videoWrapper {
+            width: 80%;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             display: flex;
             justify-content: center;
-            align-items: center;
-            flex-grow: 1;
-            position: relative;
+            background: #000;
         }
-        #cam_input {
-            display: none; 
-        }
-        #canvas_output {
-            background-color: aqua;
-        }
-        #tableWrapper {
-            text-align: center;
-            padding: 20px;
-        }
-        table {
-            border-collapse: collapse;
+        canvas {
             width: 100%;
+            display: block; /* Remove extra space below the canvas */
         }
-        th, td {
-            border: 1px solid white;
-            padding: 8px;
+        button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            font-size: 16px;
+            background-color: #007BFF;
             color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
-        th {
-            background-color: #333;
-        }
-        td {
-            background-color: #555;
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
     <div id="videoWrapper">
-        <video id="cam_input" height="480" width="640"></video>
-        <canvas id="canvas_output"></canvas>
+        <video id="cam_input" autoplay playsinline width="640" height="480" style="display: none;"></video>
+        <canvas id="canvas_output" width="640" height="480"></canvas>
     </div>
-    <button id="stopButton" onclick="stopCamera()">Arrêter la caméra</button>
-    <div id="tableWrapper">
-        <h2>Tableau des Présences</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Nom</th>
-                    <th>Prénom</th>
-                    <th>Module</th>
-                    <th>Nbr Absences</th>
-                    <th>Nbr Absences Justifiées</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                <!-- Les données de tableau seront insérées ici dynamiquement -->
-            </tbody>
-        </table>
-    </div>
+    <button id="stopButton" onclick="stopCamera()">Stop Camera</button>
 <script type="text/JavaScript">
     // Votre code JavaScript ici
     let videoStream;
@@ -183,13 +160,17 @@
     }
 
     function stopCamera() {
+        let trackPromises = [];
+    
         videoStream.getTracks().forEach(track => {
             track.stop();
-            let formData2 = new FormData();              
+    
+            let formData2 = new FormData();
             formData2.append("stop", "stop");
-            fetch('http://127.0.0.1:8000/api/stop/', { 
+    
+            let fetchPromise = fetch('http://127.0.0.1:8000/api/stop/', {
                 method: 'POST',
-                body: formData2, 
+                body: formData2,
                 redirect: 'follow'
             })
             .then(response => {
@@ -198,16 +179,65 @@
                 }
                 return response.json();
             })
-            .then(data => { console.log('Success_Stop:', data)
-                // Revenir à la page précédente
-                window.history.go(-1);
-        })
-            .catch((error) => console.error('Error:', error));
+            .then(data => console.log('Success_Stop:', data))
+            .catch(error => {
+                console.error('Error:', error);
+                // Même en cas d'erreur, on résout la promesse pour permettre la navigation
+                return Promise.resolve();
+            });
+    
+            trackPromises.push(fetchPromise);
         });
-        console.log("Camera arrêtée!");
-        window.history.go(-1);
-
+    
+        Promise.all(trackPromises).then(() => {
+            console.log("Camera arrêtée et données envoyées!");
+            window.history.back();  // Utilisation de `back()` pour un comportement peut-être plus fiable
+        });
     }
+    function stopCamera() {
+        const stopButton = document.getElementById('stopButton');
+        stopButton.disabled = true; // Désactiver le bouton pour éviter les clics multiples
+    
+        let trackPromises = [];
+    
+        videoStream.getTracks().forEach(track => {
+            track.stop();
+    
+            let formData2 = new FormData();
+            formData2.append("stop", "stop");
+    
+            let fetchPromise = fetch('http://127.0.0.1:8000/api/stop/', {
+                method: 'POST',
+                body: formData2,
+                redirect: 'follow'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Success_Stop:', data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                return Promise.resolve(); // Continue même en cas d'erreur
+            });
+    
+            trackPromises.push(fetchPromise);
+        });
+    
+        Promise.all(trackPromises).then(() => {
+            console.log("Camera arrêtée et données envoyées!");
+            stopButton.disabled = false; // Réactiver le bouton une fois que tout est terminé
+            window.history.go(-1);
+        });
+    }
+    
+        
+    
+
 </script>
 </body>
 </html>

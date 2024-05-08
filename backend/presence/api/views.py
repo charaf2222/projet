@@ -458,7 +458,7 @@ class AssisterBySeanceAPIView(APIView):
             data.append({
                 "Nom": etudiant.Nom,
                 "Prenom": etudiant.Prenom,
-                "Etat": "present", 
+                "Etat": "Présent", 
                 "Nbr_Absence": nb_a,
                 "Nbr_Absence_Justifier": nb_a_j
             })
@@ -473,7 +473,7 @@ class AssisterBySeanceAPIView(APIView):
             data.append({
                 "Nom": etudiant.Nom,
                 "Prenom": etudiant.Prenom,
-                "Etat": "absent",
+                "Etat": "Absent",
                 "Nbr_Absence": nb_a,
                 "Nbr_Absence_Justifier": nb_a_j
             })

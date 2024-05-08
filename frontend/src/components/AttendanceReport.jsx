@@ -7,7 +7,6 @@ function AttendanceReport() {
   const [modules, setModules] = useState({});
   const [etudiantsAbsents, setEtudiantsAbsents] = useState([]);
   const [selectedSeanceId, setSelectedSeanceId] = useState(null);
-
   const { enseignantId } = useParams();
 
   useEffect(() => {
@@ -32,12 +31,17 @@ function AttendanceReport() {
   const handleClick = async (seanceId) => {
     try {
       const response = await axios.get(`http://127.0.0.1:8000/api/assister_by_seance/${seanceId}/`);
-      setSelectedSeanceId(seanceId); // Définir l'ID de la séance sélectionnée
-      setEtudiantsAbsents(response.data); // Mettre à jour la liste des étudiants absents
+      setSelectedSeanceId(seanceId);
+      setEtudiantsAbsents(response.data);
     } catch (error) {
       console.error('Error fetching etudiants assister:', error);
     }
   };
+
+  const getEtatStyle = (etat) => ({
+    color: etat === 'Présent' ? 'green' : 'red',
+    fontWeight: 'bold'
+  });
 
   return (
     <div>
@@ -80,7 +84,7 @@ function AttendanceReport() {
                 <tr key={index}>
                   <td>{etudiant.Nom}</td>
                   <td>{etudiant.Prenom}</td>
-                  <td>{etudiant.Etat}</td>
+                  <td style={getEtatStyle(etudiant.Etat)}>{etudiant.Etat}</td>
                 </tr>
               ))}
             </tbody>

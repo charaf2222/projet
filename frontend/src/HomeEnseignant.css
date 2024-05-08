@@ -2,19 +2,104 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #2A2D34; /* Gris très foncé comme couleur de fond générale */
-    color: #E1E1E1; /* Gris clair pour le texte standard */
+    background-color: #F0F0F0;
+    color: #333;
 }
 
 header {
-    background-color: #1C1F26; /* Noir bleuté pour le header */
-    color: #FFFFFF; /* Blanc pour le texte dans le header */
-    padding: 20px 40px;
+    background-color: #FFFFFF;
+    color: #1C1F26;
+    padding: 10px 15px;
     text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar {
+    background-color: #333;
+    width: 3px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    overflow-x: hidden;
+    transition: width 0.3s ease;
+}
+.sidebar:hover, .sidebar:focus {
+    width: 150px;
+}
+
+.sidebar:hover {
+    width: 400px;
+}
+.logo, .nav {
+    padding: 8px;
+    margin-top: 15px;
+    color: white;
+}
+
+.nav {
+    list-style: none;
+    padding: 0;
+}
+
+.nav li a {
+    display: block;
+    padding: 10px;
+    color: white;
+    text-decoration: none;
+    transition: background-color 0.3s;
+    position: relative; /* Pour positionner les informations détaillées */
+}
+.nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+.nav li {
+    padding: 15px 10px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+.nav li a:hover {
+    background-color: #555;
+
+}
+
+.nav .icon {
+    margin-right: 10px;
+    font-size: 20px; /* Taille des icônes */
+}
+.nav a .icon {
+    margin-right: 50px;
+}
+
+.nav li a::after {
+    content: attr(data-detail);
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translateY(-50%);
+    padding: 5px 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 4px;
+    font-size: 14px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.nav li a:hover::after {
+    opacity: 1;
+}
+
+main {
+    padding: 15px;
+    
+    transition: margin-left 0.3s ease;
 }
 
 nav {
-    background-color: #333840; /* Gris foncé pour la barre de navigation */
+    background-color: #E5E5E5;
     padding: 10px;
     text-align: center;
 }
@@ -22,29 +107,26 @@ nav {
 nav button {
     margin: 10px;
     padding: 10px 20px;
-    background-color: #4A4E58; /* Gris moyen pour les boutons */
-    color: #FFFFFF; /* Blanc pour le texte des boutons */
+    background-color: #DDD;
+    color: #333;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s, transform 0.2s;
 }
 
 nav button:hover {
-    background-color: #686D76; /* Gris clair pour le bouton au survol */
-}
-
-main {
-    padding: 20px;
-    background-color: #2A2D34; /* Assorti au fond général pour un effet homogène */
+    background-color: #CCC;
+    transform: scale(1.05);
 }
 
 section {
     display: none;
-    margin-top: 20px; /* Marge au-dessus de la section */
-    background-color: #333840; /* Un peu plus clair que le fond pour contraster */
+    margin-top: 20px;
+    background-color: #FFFFFF;
     padding: 20px;
     border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 section.active {
@@ -54,20 +136,34 @@ section.active {
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px; /* Marge au-dessus du tableau */
+    margin-top: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 th, td {
-    padding: 10px;
-    border: 1px solid #4A4E58; /* Gris moyen pour les bordures */
+    padding: 12px 15px;
     text-align: left;
+    border-bottom: 1px solid #E0E0E0;
 }
 
 th {
-    background-color: #4A4E58; /* Gris moyen pour les en-têtes */
-    color: white;
+    background-color: #FFFFFF;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+td {
+    font-weight: normal;
+    color: #555;
+}
+
+tr:hover {
+    background-color: #f5f5f5;
 }
 
 tr:nth-child(even) {
-    background-color: #3B3F48; /* Gris foncé pour les lignes alternées */
+    background-color: #FAFAFA;
+}
+.sidebar:hover ~ .main-content {
+    margin-left: 250px;
 }

@@ -114,6 +114,16 @@ class Absence(models.Model):
     ID_Seances = models.ForeignKey(Seances, on_delete=models.SET_NULL, null=True)
     Date = models.DateField()
     Justifier = models.BooleanField(default=False)
+    # Méthode save() personnalisée pour stocker la valeur précédente du champ Justifier
+    def save(self, *args, **kwargs):
+        if self.pk:
+            # Si l'objet existe déjà en base de données, stocker la valeur précédente de Justifier
+            old_instance = Absence.objects.get(pk=self.pk)
+            self._previous_justifier = old_instance.Justifier
+        else:
+            # Si l'objet est nouveau, initialiser _previous_justifier à False
+            self._previous_justifier = False
+        super().save(*args, **kwargs)
     # post save
 
 
@@ -132,7 +142,7 @@ class Etat_Etudient_Module(models.Model):
     
 @receiver(post_save, sender=Absence)
 def increment_absence_number(sender, instance, created, **kwargs):
-    if created:
+    if created or instance.Justifier != instance._previous_justifier:
         # Trouver ou créer l'objet Etat_Etudient_Module pour l'étudiant et le module concernés
         etat, created = Etat_Etudient_Module.objects.get_or_create(
             ID_Etudient=instance.ID_Etudient,
@@ -150,7 +160,7 @@ def increment_absence_number(sender, instance, created, **kwargs):
         # Sauvegarder les modifications
         etat.save()
 
-        
+       
 class Reconnaissance_Faciale(models.Model):
     ID_Etudient = models.ForeignKey(Etudient, on_delete=models.SET_NULL, null=True)
     Encoding_visage = models.TextField()
