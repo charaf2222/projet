@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import './styles.css';
 
 function AttendanceReport() {
   const [seances, setSeances] = useState([]);
   const [modules, setModules] = useState({});
   const [etudiantsAbsents, setEtudiantsAbsents] = useState([]);
   const [selectedSeanceId, setSelectedSeanceId] = useState(null);
+  const [selectedModuleId, setSelectedModuleId] = useState(''); // état pour le module sélectionné
   const { enseignantId } = useParams();
 
   useEffect(() => {
@@ -16,8 +18,10 @@ function AttendanceReport() {
         setSeances(response.data);
         const moduleDetails = {};
         await Promise.all(response.data.map(async (seance) => {
-          const moduleResponse = await axios.get(`http://127.0.0.1:8000/api/Modules/${seance.ID_Module}/`);
-          moduleDetails[seance.ID_Module] = moduleResponse.data.Nom;
+          if (!moduleDetails[seance.ID_Module]) {
+            const moduleResponse = await axios.get(`http://127.0.0.1:8000/api/Modules/${seance.ID_Module}/`);
+            moduleDetails[seance.ID_Module] = moduleResponse.data.Nom;
+          }
         }));
         setModules(moduleDetails);
       } catch (error) {
@@ -38,6 +42,13 @@ function AttendanceReport() {
     }
   };
 
+  const handleModuleChange = (event) => {
+    setSelectedModuleId(event.target.value);
+  };
+
+  // Assurez-vous que les ID de module et selectedModuleId sont du même type
+  const filteredSeances = selectedModuleId ? seances.filter(seance => String(seance.ID_Module) === selectedModuleId) : seances;
+
   const getEtatStyle = (etat) => ({
     color: etat === 'Présent' ? 'green' : 'red',
     fontWeight: 'bold'
@@ -45,7 +56,16 @@ function AttendanceReport() {
 
   return (
     <div>
-      <h2>Attendance Report for Enseignant ID: {enseignantId}</h2>
+      <h2>Rapport des Présences pour l'Enseignant</h2>
+      <div>
+        <label className='annaaa' htmlFor="moduleSelect">Filtrer par Module </label>
+        <select className='ana' id="moduleSelect" value={selectedModuleId} onChange={handleModuleChange}>
+          <option value="">Tous les Modules</option>
+          {Object.entries(modules).map(([id, nom]) => (
+            <option key={id} value={id}>{nom}</option>
+          ))}
+        </select>
+      </div>
       <table>
         <thead>
           <tr>
@@ -57,7 +77,7 @@ function AttendanceReport() {
           </tr>
         </thead>
         <tbody>
-          {seances.map((seance) => (
+          {filteredSeances.map((seance) => (
             <tr key={seance.id}>
               <td><button onClick={() => handleClick(seance.id)}>{seance.id}</button></td>
               <td>{seance.Date}</td>
@@ -70,7 +90,7 @@ function AttendanceReport() {
       </table>
       {etudiantsAbsents.length > 0 && (
         <div>
-          <h3>Liste des étudiants absents à la séance {selectedSeanceId}</h3>
+          <h2>Liste des étudiants absents à la séance {selectedSeanceId}</h2>
           <table>
             <thead>
               <tr>

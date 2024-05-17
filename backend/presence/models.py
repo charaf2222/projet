@@ -22,6 +22,7 @@ class Enseignant(AbstractUser):
     Nom = models.CharField(max_length=100)
     Prenom = models.CharField(max_length=100)
     Modules_En = models.ManyToManyField(Modules, related_name='Enseignant')
+    MotDePasseApp = models.CharField(max_length=100, default="null")
 
 class Groupe(models.Model):
     CHOIX_SEMESTRE = [

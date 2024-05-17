@@ -1,6 +1,10 @@
 from rest_framework.viewsets import ModelViewSet
 import tkinter as tk
 from PIL import Image, ImageTk
+import smtplib
+from django.http import Http404
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from ..models import Etudient, Enseignant, Modules, Groupe, Seances, Absence, Assister, Etat_Etudient_Module, Reconnaissance_Faciale, CapturedImage
@@ -313,17 +317,40 @@ class MarquerAbsenceView(APIView):
 
         students_of_group = Etudient.objects.filter(Id_Groupe=last_seance.ID_Groupe)
         assisted_students = Assister.objects.filter(ID_Seances=last_seance)
+        
+        teacher = Enseignant.objects.get(username=last_seance.ID_Enseignant)
+        teacher_email = teacher.username  # Ici, l'email est stocké comme nom d'utilisateur
+        teacher_password = teacher.MotDePasseApp
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)  # Utiliser 587 pour TLS
+        server.starttls()
+        server.login(teacher_email, teacher_password)
 
         for student in students_of_group:
             if student.id not in [assist.ID_Etudient_id for assist in assisted_students]:
                 if not Absence.objects.filter(ID_Etudient_id=student.id, ID_Seances=last_seance).exists():
-                    Absence.objects.create(
+                    absence_created = Absence.objects.create(
                         ID_Etudient_id=student.id,
                         ID_Seances=last_seance,
                         Date=last_seance.Date,
                         Justifier=False
                     )
+                    etat = Etat_Etudient_Module.objects.filter(
+                        ID_Etudient_id=student.id,
+                        ID_Module=last_seance.ID_Module
+                    ).first()
+                    # Préparer l'email
+                    subject = 'Absent'
+                    body = f"Vous êtes absent dans la séance de module : {last_seance.ID_Module.Nom} et votre nombre d'absence est: {etat.Nbr_Absence}"
+                    message = MIMEText(body)
+                    message['Subject'] = subject
+                    message['From'] = teacher_email
+                    message['To'] = student.Email
 
+                    # Envoi de l'email
+                    server.sendmail(teacher_email, student.Email, message.as_string())
+
+        server.quit()
         return Response({'message': 'Absences marked successfully'}, status=status.HTTP_200_OK)
 
 
@@ -486,9 +513,84 @@ class SeancesByEnseignantAPIView(APIView):
         seances_objects = Seances.objects.filter(ID_Enseignant=enseignant_id)
         serializer = SeancesSerializer(seances_objects, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    
-         
+
+class AdministrationEmail(APIView):
+    def post(self, request):
+        data = json.loads(request.body)
+        print(data)
+        teacher_id = data.get('teacherId')
+        email_content = data.get('emailContent')
+
+        # Récupérer l'email de l'enseignant utilisé comme nom d'utilisateur
+        try:
+            teacher = Enseignant.objects.get(pk=teacher_id)
+            teacher_email = teacher.username  # Ici, l'email est stocké comme nom d'utilisateur
+            teacher_password = teacher.MotDePasseApp
+            print("email ::: "+teacher_email+" password ::: "+teacher_password)
+            FROM_Email = teacher_email
+            TO_Email = "mecificharafeddine@gmail.com"
+        except Enseignant.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Enseignant non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Configuration de l'envoi de l'email
+        msg = MIMEMultipart()
+        msg['From'] = FROM_Email
+        msg['To'] = TO_Email
+        msg['Subject'] = "Correction d'erreur de présence"
+
+        body = email_content
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Configuration du serveur SMTP
+        server = smtplib.SMTP('smtp.gmail.com', 587)  # Utiliser 465 pour SSL et TLS 587
+        server.starttls()
+        server.login(teacher_email, teacher_password)
+
+        # Envoi de l'email
+        text = msg.as_string()
+        server.sendmail(FROM_Email, TO_Email, text)
+        server.quit()
+
+        return Response({'status': 'success', 'message': 'Email envoyé avec succès!'}, status=status.HTTP_200_OK)
+
+class EtudientEmail(APIView):
+    def post(self, request):
+        teacher_id = request.data.get('teacherId')
+        group_id = request.data.get('groupId')
+        email_content = request.data.get('emailContent')
+
+        try:
+            teacher = Enseignant.objects.get(pk=teacher_id)
+            groupe = Groupe.objects.get(pk=group_id)
+            etudiants = Etudient.objects.filter(Id_Groupe=groupe)
+
+            # Connexion au serveur SMTP
+            server = smtplib.SMTP('smtp.gmail.com', 587)  # Utiliser 587 pour TLS
+            server.starttls()
+            server.login(teacher.username, teacher.MotDePasseApp)  # Connexion avec l'email et mot de passe de l'enseignant
+
+            # Préparation de l'email
+            for etudiant in etudiants:
+                msg = MIMEMultipart()
+                msg['From'] = teacher.username
+                msg['To'] = etudiant.Email
+                msg['Subject'] = "Notification pour Les Étudients de Groupe "+str(groupe.Numero)+"" 
+                body = email_content
+                msg.attach(MIMEText(body, 'plain'))
+
+                text = msg.as_string()
+                server.sendmail(teacher.username, etudiant.Email, text)
+
+            server.quit()  # Déconnexion du serveur SMTP
+            return Response({"message": "Emails sent successfully!"}, status=200)
+
+        except Enseignant.DoesNotExist:
+            raise Http404("Enseignant not found")
+        except Groupe.DoesNotExist:
+            raise Http404("Groupe not found")
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+               
 class Etat_Etudient_ModuleViewSet(ModelViewSet):
     queryset = Etat_Etudient_Module.objects.all()
     serializer_class = Etat_Etudient_ModuleSerializer 

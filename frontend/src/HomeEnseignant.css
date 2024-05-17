@@ -24,6 +24,7 @@ header {
     overflow-x: hidden;
     transition: width 0.3s ease;
 }
+
 .sidebar:hover, .sidebar:focus {
     width: 150px;
 }
@@ -31,10 +32,20 @@ header {
 .sidebar:hover {
     width: 400px;
 }
-.logo, .nav {
+
+.logo {
     padding: 8px;
     margin-top: 15px;
     color: white;
+    font-size: 24px; /* Taille du texte plus grande */
+    font-weight: bold; /* Texte en gras */
+    display: flex; /* Utilisation de Flexbox pour aligner l'icône et le texte */
+    align-items: center; /* Centre les éléments verticalement */
+    gap: 30px; /* Espace entre l'icône et le texte */
+}
+
+.logo .icon {
+    font-size: 30px; /* Taille de l'icône légèrement plus grande que le texte */
 }
 
 .nav {
@@ -42,34 +53,23 @@ header {
     padding: 0;
 }
 
-.nav li a {
-    display: block;
-    padding: 10px;
-    color: white;
-    text-decoration: none;
-    transition: background-color 0.3s;
-    position: relative; /* Pour positionner les informations détaillées */
-}
-.nav ul {
-    list-style: none;
-    padding: 0;
-}
-
 .nav li {
     padding: 15px 10px;
     border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    color: white;
 }
+
+.nav li a {
+    display: block;
+    padding: 10px;
+    text-decoration: none;
+    color: white;
+    transition: background-color 0.3s;
+    position: relative; /* Pour positionner les informations détaillées */
+}
+
 .nav li a:hover {
     background-color: #555;
-
-}
-
-.nav .icon {
-    margin-right: 10px;
-    font-size: 20px; /* Taille des icônes */
-}
-.nav a .icon {
-    margin-right: 50px;
 }
 
 .nav li a::after {
@@ -94,7 +94,6 @@ header {
 
 main {
     padding: 15px;
-    
     transition: margin-left 0.3s ease;
 }
 
@@ -163,7 +162,4 @@ tr:hover {
 
 tr:nth-child(even) {
     background-color: #FAFAFA;
-}
-.sidebar:hover ~ .main-content {
-    margin-left: 250px;
 }
