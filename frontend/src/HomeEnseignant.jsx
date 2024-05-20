@@ -45,7 +45,7 @@ const HomeEnseignant = () => {
             <li><a href="#" onClick={(e) => { e.preventDefault(); setSelectedTopic('dashboard'); }}><span className="icon">&#128202;</span> Tableau de Bord</a></li>
             <li><a href="#" onClick={(e) => { e.preventDefault(); setSelectedTopic('start-session'); }}><span className="icon">&#127979;</span> Commencer une Séance</a></li>
             <li><a href="#" onClick={(e) => { e.preventDefault(); setSelectedTopic('attendance-report'); }}><span className="icon">&#128218;</span> Rapport des Présences</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); setSelectedTopic('communication'); }}><span className="icon">&#128101;</span> Communication avec les Étudiants</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); setSelectedTopic('communication'); }}><span className="icon">&#128101;</span> Communication</a></li>
           </ul>
         </div>
         {content}
