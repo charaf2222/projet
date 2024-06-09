@@ -22,7 +22,7 @@ class SeancesSerializer(ModelSerializer):
 class EnseignantSerializer(ModelSerializer):
    class Meta:
     model = get_user_model()
-    fields = ['id','username', 'password', 'Nom', 'Prenom', 'Modules_En']   
+    fields = ['id','username', 'password', 'Nom', 'Prenom', 'Modules_En', 'MotDePasseApp']   
         
 class GroupeSerializer(ModelSerializer):
     class Meta:
